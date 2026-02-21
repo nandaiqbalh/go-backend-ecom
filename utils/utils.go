@@ -18,13 +18,24 @@ var Validate = validator.New()
 // given payload structure. It returns an error if the body is empty or if
 // decoding fails.
 func ParseJson(r *http.Request, payload any) error {
-    if r.Body == nil {
-        return fmt.Errorf("request body is empty")
-    }
+	if r.Body == nil {
+		return fmt.Errorf("request body is empty")
+	}
 
-    return json.NewDecoder(r.Body).Decode(payload)
+	decoder := json.NewDecoder(r.Body)
+
+	// reject field yang tidak ada di struct
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(payload); err != nil {
+		if err.Error() == "EOF" {
+			return fmt.Errorf("request body cannot be empty")
+		}
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+
+	return nil
 }
-
 // WriteJson sends a JSON response with the specified status code. The
 // payload is encoded and written to the response body.
 func WriteJson(w http.ResponseWriter, statusCode int, payload any) error {

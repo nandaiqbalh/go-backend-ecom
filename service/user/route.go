@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/nandaiqbalh/go-backend-ecom/config"
 	"github.com/nandaiqbalh/go-backend-ecom/service/auth"
 	"github.com/nandaiqbalh/go-backend-ecom/types"
 	"github.com/nandaiqbalh/go-backend-ecom/utils"
@@ -36,11 +37,64 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
     router.HandleFunc("/register", h.handleRegister).Methods("POST")
 }
 
-// handleLogin processes login requests. In a real implementation, this
-// would parse credentials, verify them against the database, and return a
-// token or error.
+
+// handleLogin processes login requests. The flow is:
+// 1. Decode JSON body into LoginUserPayload.
+// 2. Validate required fields (email + password).
+// 3. Look up the user by email using the injected store.
+// 4. Compare provided password with the stored hash.
+// 5. Create a JWT containing the user ID.
+// 6. Return the token in the response body.
+//
+// The handler deliberately returns a generic "invalid email or password"
+// error for authentication failures to avoid giving attackers information
+// about which part of the credentials was wrong.
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-    // Implement login logic here
+    if r.Body == nil {
+        utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("request body is empty"))
+        return
+    }
+
+    var payload types.LoginUserPayload
+    if err := utils.ParseJson(r, &payload); err != nil {
+        utils.WriteError(w, http.StatusBadRequest, err)
+        return
+    }
+
+    // validate payload using struct tags
+    if err := utils.Validate.Struct(payload); err != nil {
+        utils.WriteError(w, http.StatusBadRequest, err)
+        return
+    }
+
+    // find user record
+    u, err := h.store.GetUserByEmail(payload.Email)
+    if err != nil {
+        // do not reveal whether the email was wrong
+        utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
+        return
+    }
+
+    // check password
+    if !auth.ComparePassword(u.Password, []byte(payload.Password)) {
+        utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
+        return
+    }
+
+    // ensure we have a signing secret
+    if config.Envs.JWTSecret == "" {
+        utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("JWT secret not configured"))
+        return
+    }
+    secret := []byte(config.Envs.JWTSecret)
+
+    token, err := auth.CreateJWT(secret, u.ID)
+    if err != nil {
+        utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to generate token: %v", err))
+        return
+    }
+
+    utils.WriteJson(w, http.StatusOK, types.LoginResponse{Token: token})
 }
 
 // handleRegister handles new user registration. Typical flow includes

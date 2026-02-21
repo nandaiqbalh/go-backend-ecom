@@ -12,16 +12,6 @@ type UserStore interface {
     CreateUser(user *User) error 
 }
 
-// RegisterUserPayload defines the expected JSON structure for
-// registration requests. Validation tags are used with the validator
-// package to enforce required fields.
-type RegisterUserPayload struct {
-    FirstName string `json:"firstName" validate:"required"`
-    LastName  string `json:"lastName" validate:"required"`
-    Email     string `json:"email" validate:"required,email"`
-    Password  string `json:"password" validate:"required,min=6"`
-}
-
 // User represents a persisted user entity. The Password field is omitted
 // from JSON serialization for security reasons.
 type User struct {
@@ -32,3 +22,5 @@ type User struct {
     Password  string `json:"-"`
     CreatedAt string `json:"createdAt"` 
 } 
+
+

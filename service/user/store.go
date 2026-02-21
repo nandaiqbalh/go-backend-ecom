@@ -69,10 +69,14 @@ func ScanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 // CreateUser inserts a new user record into the database. Caller must ensure
 // the User struct has valid data; password should already be hashed.
 func (s *Store) CreateUser(user *types.User) error {
-    _, err := s.db.Exec("INSERT INTO users (first_name, last_name, email, password) VALUES (?, ?, ?, ?)",
+    _, err := s.db.Exec("INSERT INTO users (firstName, lastName, email, password) VALUES (?, ?, ?, ?)",
         user.FirstName, user.LastName, user.Email, user.Password)
 
-    return err
+    if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetUserByID returns a user matching the given ID or an error if none exists.
