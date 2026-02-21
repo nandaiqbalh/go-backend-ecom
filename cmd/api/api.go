@@ -32,19 +32,24 @@ func NewAPIServer(addr string, db *sql.DB) *APIServer {
 // Run starts the HTTP server. The flow is:
 // 1. Create a root mux router.
 // 2. Create a subrouter for versioned API paths (/api/v1).
-// 3. Register user-related routes on the subrouter.
-// 4. Log the listening address and call http.ListenAndServe.
+// 3. Construct any required stores or services (here, the user store) and
+//    inject them into handler constructors.
+// 4. Register user-related routes on the subrouter.
+// 5. Log the listening address and call http.ListenAndServe.
 func (s *APIServer) Run() error {
     router := mux.NewRouter()
 
     // Use a versioned prefix to allow for future changes.
     subroute := router.PathPrefix("/api/v1").Subrouter()
 
-    // Initialize handlers and register their routes.
-    userHandler := user.NewHandler()
+    // Build a store backed by the shared database connection and pass it to
+    // the user handler. This demonstrates dependency injection: the handler
+    // need not know about the database itself, only the interface it needs.
+    userStore := user.NewStore(s.db)
+    userHandler := user.NewHandler(userStore)
     userHandler.RegisterRoutes(subroute)
 
     log.Println("Listening on", s.addr)
 
     return http.ListenAndServe(s.addr, router)
-}
+} 
