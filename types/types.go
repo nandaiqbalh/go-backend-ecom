@@ -12,6 +12,14 @@ type UserStore interface {
     CreateUser(user *User) error 
 }
 
+type ProductStore interface {
+	ListProducts() ([]*Product, error)
+	GetProductByID(id int) (*Product, error)
+	CreateProduct(product *Product) error
+	UpdateProduct(product *Product) error
+	DeleteProduct(id int) error
+}
+
 // User represents a persisted user entity. The Password field is omitted
 // from JSON serialization for security reasons.
 type User struct {
@@ -23,4 +31,12 @@ type User struct {
     CreatedAt string `json:"createdAt"` 
 } 
 
-
+type Product struct {
+    ID          int     `json:"id"`
+    Name        string  `json:"name"`
+    Description string  `json:"description"`
+    Image       string  `json:"image,omitempty"` // URL or path to product image; may be empty
+    Price       float64 `json:"price"`
+    Quantity    int     `json:"quantity"`
+    CreatedAt   string  `json:"createdAt"`
+}

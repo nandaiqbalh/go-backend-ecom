@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/nandaiqbalh/go-backend-ecom/service/product"
 	"github.com/nandaiqbalh/go-backend-ecom/service/user"
 )
 
@@ -48,6 +49,11 @@ func (s *APIServer) Run() error {
     userStore := user.NewStore(s.db)
     userHandler := user.NewHandler(userStore)
     userHandler.RegisterRoutes(subroute)
+
+	// product related
+	productStore:= product.NewStore(s.db)
+	productHandler := product.NewHandler(productStore)
+	productHandler.RegisterRoutes(subroute)
 
     log.Println("Listening on", s.addr)
 
